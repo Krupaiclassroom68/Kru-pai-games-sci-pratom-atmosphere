@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Atmosphere Matrix Mission — Layers (A)</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --neon:#00ffb4; --cyan:#00eaff; --ink:#c9fff2; --bg:#000;
+  --grid:rgba(0,255,180,.25);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:'Kanit',sans-serif;overflow:hidden}
+
+/* Matrix grid backdrop */
+.canvas{
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    linear-gradient(var(--grid) 1px, transparent 1px) 0 0/ 24px 24px,
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0/ 24px 24px,
+    radial-gradient(ellipse at 50% 20%, rgba(0,255,180,.06), transparent 60%);
+  animation: glow 6s ease-in-out infinite alternate;
+}
+@keyframes glow{to{filter:hue-rotate(20deg) brightness(1.15)}}
+
+/* Floating matrix rain lines */
+.line{position:fixed; top:-20vh; width:2px; height:140vh; background:linear-gradient(180deg,transparent,rgba(0,255,180,.45),transparent); opacity:.4; z-index:1; animation:fall linear infinite}
+@keyframes fall{to{transform:translateY(120vh)}}
+
+/* Clouds */
+.cloud{position:fixed; top:10%; left:-35%; width:200px; height:100px; background:rgba(255,255,255,.14); border-radius:60px; filter:blur(8px); animation:cloud 28s linear infinite; z-index:2}
+.cloud:before,.cloud:after{content:""; position:absolute; background:inherit; border-radius:inherit; width:140px; height:80px; top:-30px; left:20px}
+.cloud:after{width:120px; height:70px; top:10px; left:100px}
+.cloud.c2{top:72%; width:260px; height:120px; animation-duration:36s; opacity:.7}
+@keyframes cloud{from{left:-35%}to{left:115%}}
+
+/* Radar */
+.radar{
+  position:fixed; inset:auto; top:52%; left:50%; width:220px; height:220px; margin:-110px 0 0 -110px; border-radius:50%;
+  border:2px solid rgba(0,255,255,.3); box-shadow:0 0 24px rgba(0,255,255,.3); z-index:3; pointer-events:none;
+}
+.radar i{position:absolute; inset:0; border-radius:50%; background:conic-gradient(rgba(0,255,255,.45), transparent 40%); animation:spin 3s linear infinite}
+.radar:before,.radar:after{content:""; position:absolute; inset:18px; border-radius:50%; border:1px dashed rgba(0,255,255,.2)}
+.radar:after{inset:48px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Header & Logo */
+.header{position:relative; z-index:4; display:flex; justify-content:space-between; align-items:center; padding:10px 14px; margin:10px; border:1px solid rgba(0,255,180,.35); border-radius:14px; background:rgba(0,0,0,.45); backdrop-filter:blur(3px); box-shadow:0 0 14px rgba(0,255,180,.25)}
+.title{font-weight:800; letter-spacing:.5px; text-shadow:0 0 8px rgba(0,255,180,.6)}
+.logo{font-weight:800; color:#fff; border:1px solid rgba(0,255,255,.35); padding:6px 10px; border-radius:10px; background:rgba(0,0,0,.4)}
+
+/* Game area */
+.game{position:relative; z-index:4; display:grid; grid-template-rows:auto auto 1fr auto; gap:8px; height:calc(100% - 78px); padding:0 14px 14px}
+.question{margin:8px auto 0; text-align:center; font-size:clamp(20px,4.6vw,34px); font-weight:800; color:#8efaff; text-shadow:0 0 10px rgba(0,255,255,.7)}
+.controls{display:flex; justify-content:center; align-items:center; gap:10px}
+.btn{border:none; border-radius:14px; padding:12px 18px; font-weight:800; font-size:18px; background:#05e8ad; color:#012218; box-shadow:0 8px 18px rgba(0,255,180,.22); cursor:pointer}
+.btn:active{transform:translateY(1px)}
+.progress{display:inline-block; font-weight:800; background:rgba(0,0,0,.45); border:1px solid rgba(0,255,180,.35); border-radius:10px; padding:6px 10px}
+.count{display:inline-block; font-weight:800; background:rgba(0,0,0,.6); border:1px solid rgba(0,255,255,.35); border-radius:10px; padding:6px 10px; color:#7affff}
+
+.choices{display:flex; justify-content:center; gap:16px; margin-top:6px}
+.choice{min-width:100px; max-width:30vw; text-align:center; padding:12px 14px; border:2px solid #00ffc0; color:#00ffc0; background:rgba(0,0,0,.55); border-radius:12px; font-weight:800; cursor:pointer; transition:.15s; user-select:none;
+  font-size:clamp(18px,5vw,28px); text-shadow:0 0 6px rgba(0,255,192,.4)}
+.choice:hover{background:#00ffc0; color:#001c14}
+.choice.disabled{opacity:.5; pointer-events:none}
+
+.zones{display:flex; justify-content:space-between; align-items:center; padding:6px 0 0}
+.box{width:46%; min-height:70px; border:1px dashed rgba(0,255,255,.4); border-radius:10px; color:#bff; padding:10px; background:rgba(0,10,10,.4)}
+.box b{display:block; margin-bottom:4px}
+.score{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px}
+.dot{width:18px; height:18px; border:2px solid rgba(0,255,180,.4); border-radius:50%}
+.dot.on{background:var(--neon); box-shadow:0 0 10px var(--neon)}
+
+/* Lightning flash effect (wrong answer) */
+.flash{position:fixed; inset:0; background:radial-gradient(circle at 50% 40%, rgba(255,255,255,.9), rgba(255,255,255,.0) 40%); pointer-events:none; z-index:10; animation:flash .28s ease-out}
+@keyframes flash{0%{opacity:0} 10%{opacity:1} 100%{opacity:0}}
+
+/* Rain streaks for correct */
+.drop{position:fixed; top:-10px; width:3px; height:16px; background:#0ff; border-radius:2px; z-index:9; animation:rain .8s linear forwards}
+@keyframes rain{to{transform:translateY(140vh); opacity:0}}
+
+/* End screen */
+.end{position:fixed; inset:0; z-index:6; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.6); backdrop-filter:blur(2px)}
+.end .panel{border:1px solid rgba(0,255,180,.4); border-radius:16px; background:rgba(0,0,0,.6); color:#fff; padding:22px; width:min(540px,90vw); text-align:center; box-shadow:0 0 18px rgba(0,255,180,.25)}
+.big{font-size:clamp(28px,6vw,56px); font-weight:800; color:#7affff; text-shadow:0 0 12px rgba(0,255,255,.6)}
+.badge{display:inline-block; margin-top:10px; padding:8px 12px; border-radius:999px; font-weight:800}
+.ok{background:linear-gradient(180deg,#ffe07a,#ffbb00); color:#4a2a00}
+.no{background:linear-gradient(180deg,#ffd1d9,#ff6a80); color:#4a0020}
+
+.mode{display:flex; gap:8px; align-items:center}
+.mbtn{border:1px solid rgba(0,255,255,.5); background:rgba(0,0,0,.35); color:#cffff6;
+      padding:6px 10px; border-radius:10px; font-weight:700; cursor:pointer}
+.mbtn.active{background:#05e8ad; color:#012218; border-color:#05e8ad}
+
+body.class-mode .question{font-size:clamp(40px,8vw,120px); line-height:1.1}
+body.class-mode .choices{flex-direction:column; align-items:center; gap:24px; margin-top:16px}
+body.class-mode .choice{font-size:clamp(36px,7vw,100px); padding:2vh 3vw; min-width:min(40vw,700px); max-width:none}
+body.class-mode .btn{font-size:clamp(24px,3vw,48px); padding:14px 28px}
+body.class-mode .count{font-size:clamp(22px,3vw,40px); padding:10px 16px}
+body.class-mode .progress{font-size:clamp(18px,2.2vw,32px); padding:8px 14px}
+body.class-mode .zones{gap:18px}
+body.class-mode .box{min-height:90px; font-size:clamp(16px,2vw,28px)}
+/* Optional de-emphasis of background on big screen */
+body.class-mode .radar{opacity:.35; transform:scale(1.1)}
+body.class-mode .cloud, body.class-mode .line{opacity:.35}
+
+</style>
+</head>
+<body>
+<div class="canvas"></div>
+<div class="cloud"></div>
+<div class="cloud c2"></div>
+
+<div class="radar"><i></i></div>
+
+<header class="header">
+  <div class="title">Atmosphere Matrix Mission — Layers</div>
+  <div class="logo">Kru Pai Classroom ✨</div>
+
+  <div class="mode">
+    <button class="mbtn" id="mMobile">📱 Mobile</button>
+    <button class="mbtn" id="mClass">🖥 Classroom</button>
+  </div>
+
+</header>
+
+<div class="game">
+  <div class="question" id="q">กด “ปล่อยคำ” เพื่อเริ่มภารกิจ 🌪️</div>
+  <div class="controls">
+    <button class="btn" id="release">ปล่อยคำ ✨</button>
+    <div class="progress" id="prog">0 / 20</div>
+    <div class="count" id="count">10s</div>
+  </div>
+  <div class="choices" id="choicesWrap" style="margin-top:4px">
+    <div id="c1" class="choice"></div>
+    <div id="c2" class="choice"></div>
+  </div>
+  <div class="zones">
+    <div class="box"><b>คลังความรู้ ✅</b><div id="knowledge" class="score"></div></div>
+    <div class="box"><b>ถังพายุหมุน 🌪️</b><div id="trash" class="score"></div></div>
+  </div>
+</div>
+
+<div class="end" id="end">
+  <div class="panel">
+    <div class="big" id="resultTitle">Mission Complete</div>
+    <p class="big" id="finalScore">0 / 20</p>
+    <div id="badge" class="badge ok" style="display:none">Sky Commander</div>
+    <div id="badge2" class="badge no" style="display:none">Try Again</div>
+    <p><button class="btn" onclick="location.reload()">เล่นอีกครั้ง</button></p>
+  </div>
+</div>
+
+<!-- Sounds -->
+<audio id="sOK" preload="auto" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_13a383c0c4.mp3?filename=correct-2-46134.mp3"></audio>
+<audio id="sNG" preload="auto" src="https://cdn.pixabay.com/download/audio/2021/09/20/audio_3d7e8f2c37.mp3?filename=thunder-124067.mp3"></audio>
+<audio id="spin" preload="auto" src="https://cdn.pixabay.com/download/audio/2021/09/04/audio_ef9f77c7ef.mp3?filename=mechanical-gear-ticking-101076.mp3" loop></audio>
+<audio id="tick" preload="auto" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_70b4661098.mp3?filename=tick-111896.mp3"></audio>
+
+<script>
+// Build matrix rain lines
+for(let i=0;i<24;i++){
+  const l=document.createElement('div');
+  l.className='line';
+  l.style.left = (Math.random()*100)+'%';
+  l.style.animationDuration = (2.8 + Math.random()*3)+'s';
+  document.body.appendChild(l);
+}
+
+// Dataset: 20 Q — option A (English layer names)
+const QA = [
+  ["ชั้นที่เกิดฝน เมฆ พายุ เป็นส่วนใหญ่", "Troposphere", "Mesosphere", 0],
+  ["อุณหภูมิลดลงเมื่อสูงขึ้นในชั้นนี้", "Troposphere", "Stratosphere", 0],
+  ["พบโอโซนดูดซับรังสี UV ปกป้องโลก", "Stratosphere", "Thermosphere", 0],
+  ["อุณหภูมิเพิ่มขึ้นตามระดับความสูงเพราะดูดซับ UV", "Stratosphere", "Troposphere", 0],
+  ["อุกกาบาตมักเผาไหม้ในชั้นนี้", "Mesosphere", "Exosphere", 0],
+  ["อุณหภูมิต่ำที่สุดในบรรยากาศ (ราว −90°C)", "Mesosphere", "Troposphere", 0],
+  ["พบแสงเหนือแสงใต้ (Aurora)", "Thermosphere", "Mesosphere", 0],
+  ["มีไอออน/ประจุไฟฟ้าจำนวนมาก (Ionosphere)", "Thermosphere", "Stratosphere", 0],
+  ["อุณหภูมิสูงมาก เกิน ~1000°C", "Thermosphere", "Troposphere", 0],
+  ["ชั้นบรรยากาศชั้นนอกสุดก่อนสู่อวกาศ", "Exosphere", "Stratosphere", 0],
+  ["ดาวเทียมบางส่วนโคจรในชั้นนี้", "Exosphere", "Mesosphere", 0],
+  ["เครื่องบินพาณิชย์มักบินชั้นนี้", "Stratosphere", "Troposphere", 0],
+  ["สถานีอวกาศ ISS (วงโคจรต่ำ) อยู่ชั้นนี้", "Thermosphere", "Exosphere", 0],
+  ["มวลอากาศมากที่สุดของโลกอยู่ที่นี่", "Troposphere", "Stratosphere", 0],
+  ["ชั้นที่สิ่งมีชีวิตอาศัยและหายใจ", "Troposphere", "Mesosphere", 0],
+  ["อากาศบางมาก กระจายออกสู่อวกาศ", "Exosphere", "Stratosphere", 0],
+  ["อุณหภูมิลดต่ำลงมากที่ระดับสูง", "Mesosphere", "Troposphere", 0],
+  ["มีเจ็ตสตรีม (Jet stream)", "Stratosphere", "Thermosphere", 0],
+  ["บัลลูนตรวจอากาศมักขึ้นถึงชั้นนี้", "Stratosphere", "Mesosphere", 0],
+  ["ชั้นที่สะท้อนสัญญาณวิทยุ", "Thermosphere", "Exosphere", 0]
+];
+
+let idx = -1, score = 0;
+const total = QA.length;
+const PASS = 16; // 16/20 to pass
+const LIMIT = 10; // seconds per question
+let remaining = LIMIT;
+let tHandle = null;
+let ticking = null;
+
+const qEl = document.getElementById('q');
+const c1 = document.getElementById('c1');
+const c2 = document.getElementById('c2');
+const know = document.getElementById('knowledge');
+const trash = document.getElementById('trash');
+const prog = document.getElementById('prog');
+const end = document.getElementById('end');
+const title = document.getElementById('resultTitle');
+const finalScore = document.getElementById('finalScore');
+const bOk = document.getElementById('badge');
+const bNo = document.getElementById('badge2');
+const relBtn = document.getElementById('release');
+const count = document.getElementById('count');
+const spin = document.getElementById('spin');
+try{ spin.volume = 0.25; }catch(e){}
+
+function setChoicesEnabled(enabled){
+  [c1,c2].forEach(c=>{
+    c.classList.toggle('disabled', !enabled);
+    c.style.pointerEvents = enabled? 'auto':'none';
+  });
+}
+
+function dropRain(){
+  for(let i=0;i<10;i++){
+    const d=document.createElement('div');
+    d.className='drop';
+    d.style.left = (Math.random()*100)+'%';
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(),900);
+  }
+}
+
+function flashLightning(){
+  const f=document.createElement('div');
+  f.className='flash';
+  document.body.appendChild(f);
+  setTimeout(()=>f.remove(),300);
+}
+
+function startTicking(){
+  try{ spin.play(); }catch(e){}
+
+  stopTicking();
+  ticking = setInterval(()=>{
+    const tick = document.getElementById('tick');
+    try { tick.currentTime = 0; tick.play(); } catch(e){}
+  }, 1000);
+}
+function stopTicking(){
+  try{ spin.pause(); spin.currentTime=0; }catch(e){}
+
+  if(ticking){ clearInterval(ticking); ticking=null; }
+}
+
+function startTimer(){
+  remaining = LIMIT;
+  count.textContent = remaining + 's';
+  stopTicking(); startTicking();
+  clearInterval(tHandle);
+  tHandle = setInterval(()=>{
+    remaining--;
+    count.textContent = remaining + 's';
+    if(remaining<=0){
+      clearInterval(tHandle);
+      stopTicking();
+      // time up = wrong
+      const sNG = document.getElementById('sNG');
+      try { sNG.currentTime=0; sNG.play(); } catch(e){}
+      trash.appendChild(dot(false));
+      flashLightning();
+      endQuestion(); // wait for manual release
+    }
+  }, 1000);
+}
+
+function stopTimer(){
+  clearInterval(tHandle);
+  stopTicking();
+}
+
+function nextQ(){
+  idx++;
+  if(idx >= total){
+    end.style.display='flex';
+    finalScore.textContent = `${score} / ${total}`;
+    if(score >= PASS){
+      title.textContent = 'ผ่านภารกิจ! Sky Commander';
+      bOk.style.display='inline-block';
+      bNo.style.display='none';
+    }else{
+      title.textContent = 'ภารกิจยังไม่ผ่าน';
+      bOk.style.display='none';
+      bNo.style.display='inline-block';
+    }
+    return;
+  }
+  const item = QA[idx];
+  const [def,a,b,correctIdx] = item;
+  const first = Math.random() > 0.5;
+  const opt1 = first ? a : b;
+  const opt2 = first ? b : a;
+  const correctForOpt1 = (first ? 0 : 1) === correctIdx;
+  const correctForOpt2 = !correctForOpt1;
+
+  qEl.textContent = def;
+  c1.textContent = opt1; c1.dataset.ok = correctForOpt1 ? '1':'0';
+  c2.textContent = opt2; c2.dataset.ok = correctForOpt2 ? '1':'0';
+  prog.textContent = `${idx+1} / ${total}`;
+
+  setChoicesEnabled(true);
+  relBtn.disabled = true;
+  relBtn.textContent = 'กำลังจับเวลา...';
+  startTimer();
+}
+
+function endQuestion(){
+  try{ spin.pause(); spin.currentTime=0; }catch(e){}
+  setChoicesEnabled(false);
+  stopTimer();
+  relBtn.disabled = false;
+  relBtn.textContent = 'ปล่อยคำถัดไป ✨';
+}
+
+function handleChoice(e){
+  if(c1.classList.contains('disabled')) return;
+  const ok = e.currentTarget.dataset.ok === '1';
+  if(ok){
+    const sOK = document.getElementById('sOK');
+    try { sOK.currentTime = 0; sOK.play(); } catch(e){}
+    score++;
+    know.appendChild(dot(true));
+    dropRain();
+  }else{
+    const sNG = document.getElementById('sNG');
+    try { sNG.currentTime = 0; sNG.play(); } catch(e){}
+    trash.appendChild(dot(false));
+    flashLightning();
+  }
+  endQuestion(); // manual next by button
+}
+
+function dot(isOn){
+  const d=document.createElement('div');
+  d.className='dot' + (isOn?' on':'');
+  return d;
+}
+
+relBtn.addEventListener('click', ()=>{
+  try{ spin.currentTime=0; spin.play(); }catch(e){}
+  if(relBtn.disabled) return;
+  nextQ();
+});
+
+c1.addEventListener('click', handleChoice);
+c2.addEventListener('click', handleChoice);
+
+// Mode toggle
+const mMobile = document.getElementById('mMobile');
+const mClass = document.getElementById('mClass');
+
+function setMode(mode){
+  if(mode === 'class'){
+    document.body.classList.add('class-mode');
+    mClass.classList.add('active'); mMobile.classList.remove('active');
+    sessionStorage.setItem('mode','class');
+  }else{
+    document.body.classList.remove('class-mode');
+    mMobile.classList.add('active'); mClass.classList.remove('active');
+    sessionStorage.setItem('mode','mobile');
+  }
+}
+mMobile.addEventListener('click', ()=>setMode('mobile'));
+mClass.addEventListener('click', ()=>setMode('class'));
+
+// Restore mode on load
+setMode(sessionStorage.getItem('mode') || 'mobile');
+
+</script>
+</body>
+</html>
